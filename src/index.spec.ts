@@ -11,7 +11,8 @@ describe('Test returnSiteTitles', () => {
     expect(titles[0]).toBe('PatientStudio - Integrated EMR, Practice Management and Billing Software')
     expect(titles[1]).toBe('Star Trek (Official Site)')
     expect(titles[2]).toBe('StarWars.com | The Official Star Wars Website')
-    expect(titles[3]).toBe('Neowin - Where unprofessional journalism looks better')
+    // last website was updated.
+    expect(titles[3]).toBe('Tech News, Reviews & Betas | Neowin')
   })
 })
 

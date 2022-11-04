@@ -17,19 +17,16 @@ export async function returnSiteTitles() {
     'https://www.neowin.net/'
   ]
 
-  const titles = []
+  const titles: string[] = []
+  const respones = await Promise.all(urls.map(url => fetch(url, { method: 'GET' }).then(res => res.text())))
 
-  for (const url of urls) {
-    const response = await fetch(url, { method: 'GET' })
+  respones.forEach(response => {
+    const match = response.match(/<title>(.*?)<\/title>/)
 
-    if (response.status === 200) {
-      const data = await response.text()
-      const match = data.match(/<title>(.*?)<\/title>/)
-      if (match?.length) {
-        titles.push(match[1])
-      }
+    if (match?.length) {
+      titles.push(match[1])
     }
-  }
+  })
 
   return titles
 }
@@ -44,25 +41,15 @@ export async function returnSiteTitles() {
  * @returns array of objects
  */
 export function findTagCounts(localData: Array<SampleDateRecord>): Array<TagCounts> {
-  const tagCounts: Array<TagCounts> = []
+  const tagCounts = localData.reduce((map: Map<string, number>, data) => {
+    for (const tag of data.tags)
+      map.set(tag, (map.get(tag) ?? 0) + 1);
+    return map;
+  }, new Map<string, number>());
+  const totTags: Array<TagCounts> = [];
+  tagCounts.forEach((count, tag) => totTags.push({ tag, count}));
 
-  for (let i = 0; i < localData.length; i++) {
-    const tags = localData[i].tags
-
-    for (let j = 0; j < tags.length; j++) {
-      const tag = tags[j]
-
-      for (let k = 0; k < tagCounts.length; k++) {
-        if (tagCounts[k].tag === tag) {
-          tagCounts[k].count++
-        } else {
-          tagCounts.push({ tag, count: 1 })
-        }
-      }
-    }
-  }
-
-  return tagCounts
+  return totTags;
 }
 
 /**
@@ -78,6 +65,25 @@ export function findTagCounts(localData: Array<SampleDateRecord>): Array<TagCoun
  *  - if the imported item is on the "category exceptions" list, then no tax rate applies
  */
 export function calcualteImportCost(importedItems: Array<ImportedItem>): Array<ImportCostOutput> {
-  // please write your code in here.
-  // note that `taxRate` has already been imported for you
+  const costs: Array<ImportCostOutput> = []
+
+  importedItems.map(item => {
+    const name = item.name
+    const subtotal = item.unitPrice * item.quantity
+    let taxRate = 0
+
+    const individualTaxInfo = taxRates.find(({ country }) => country === item.countryDestination) // get the tax information for destination of current item
+
+    if (!individualTaxInfo?.categoryExceptions.includes(item.category))
+      taxRate = individualTaxInfo ? individualTaxInfo.importTaxRate : 0
+
+    costs.push({
+      name,
+      subtotal,
+      importCost: subtotal * taxRate,
+      totalCost: subtotal * taxRate + subtotal
+    })
+  })
+
+  return costs
 }
